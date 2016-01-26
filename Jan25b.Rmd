@@ -1,0 +1,189 @@
+---
+title: "Survival"
+author: "Erin Feichtinger"
+date: "January 25, 2016"
+output: html_document
+---
+
+I have done some "preliminary" work if you will, last summer and fall. I have extracted data on the jays from the database with the information needed for basic survival models. From there, I set up a file with birds that became breeders. The start of the interval for this stage is the year a bird was first recorded as a breeder and the end is April 2015 (at least it was then, I can always add more months from 2015). I chose April because that is when individuals move from juvenile/independent young to one year old (adult helper). A bird can become a breeder earlier in spring and nestlings fledge all spring. Back to breeders for a moment, in April 2015, they are either dead or still alive (right censored).  
+
+The starting point now is to fit survival models to the data. I made some survival objects using the Survival Package in R with the Surv function. I think a good place to start is to have all of the birds in one data set not split up by stage. Does doing this step make it justifiable to split the population up into stages for modeling survival? My intuition is to start here and see if we can adequately describe survival with simple models. I predict that we will have justification to split the birds up by stage because the survival probability differs by stage.  
+
+First, I'll use the Kaplan Meier estimate of survival. I've done this before but I'm not really sure what it tells me that's useful here (besides showing the cumulative survival of the birds in the sample). I followed the example laid out in Gordon's Intro to Event Times from September 2009 on the cactus finch first. The plot of the curve follows. I used the summary() function and the output was crazy (lots of individuals). The first thing that I notice is that there are a lot of events (i.e. deaths!!) in the first part of the time period which runs from Jan 1981 to October 2015 in this case. The survival starts out high but drops quickly. This is consistent with what we know about the jay biology. The young ones have a higher mortality rate than adults. But what can this tell us about the need to split up the birds by stage? The number of deaths in each interval declines over time. 
+
+The following code is for all known-age birds in the study tract from 1981 to October of 2015. I used Oct because that is the most recent census updated on the jay database. I can always change the start and stop years. Anyway, all of these birds have a fledge date and a death date, or they are still alive as of 10/15/2015 (right-censored).
+
+```{r, echo = TRUE}
+setwd("C:/Users/Erin/Reports")
+library(survival)
+birds <- read.csv("Erin_Surv_All.csv")
+#remove duplicates
+birds2 <- birds[!duplicated(birds),]
+
+colnames(birds2)[7] <- "LastObsDate"
+
+birds2$FldgDate <- as.Date(birds2$FldgDate, format = "%m/%d/%Y")
+birds2$LastObsDate <- as.Date(birds2$LastObsDate, format = "%m/%d/%Y")
+
+#interval in days from fledge to death or right censorship (still alive)
+date.diff<- birds2$LastObsDate-birds2$FldgDate
+birds2["days"] <- date.diff
+birds2$days <-as.numeric(birds2$days)
+
+#interval in years
+birds2["yrs"] <- birds2$days/365
+birds2 <- subset(birds2, birds2$days > 0)
+
+birds2["censorship"] <- 1
+birds2$censorship[which(birds2$LastObsDate=="2015-10-14")]<-0
+
+#very important piece of code for the model to work properly 
+birds2 <- subset(birds2, birds2$days > 0)
+
+#changed these to numeric so it would work in the model
+birds2$FldgDate <- as.numeric(birds2$FldgDate)
+birds2$LastObsDate <- as.numeric(birds2$LastObsDate)
+birds2$days <- as.numeric(birds2$days)
+birds2$yrs <- as.numeric(birds2$yrs)
+
+#create survival object
+survobj <- Surv(birds2$yrs, birds2$censorship)
+jay.lifetab <- survfit(survobj~1)
+jay.fit <- plot(jay.lifetab, xlab = "Time (days)", 
+      ylab = "Cumulative Survival", main = "All known age birds")
+```
+The figure looks right, although it doesn't have the step structure like Gordon's figure. Higher sample size here? 
+
+When I created the survival object with the function Surv, I used the number of years that individuals were alive (fledge to death or censorship/still alive). Is this the correct way to use this? I think so from the documentation but just want to make sure. 
+
+Now I'm not really sure where to go next. Gordon's advice was to start fitting basic models. I still don't know what this means even though we had talked about it. The exponential model? I don't have the covariates in the data set currently (except for sex and yr born). They are accessbile but I need to add them in. I started this way to get a feel for the survival modeling process with a few as covariates as possible.  
+
+According to P. Keli (2015), when the hazard at time t is independent of age, the prob density for the proportion of the cohort at time t declines exponentially... a constant hazard. 
+
+```{r, echo=TRUE}
+#Exponential model with no predictors
+jay.int <- survreg(Surv(birds2$days, birds2$censorship)~1, dist="exponential")
+summary(jay.int)
+
+#Weibull distribution with no predictors 
+jay.weib <- survreg(survobj~1, dist = "weibull")
+summary(jay.weib)
+```
+
+Sometime ago, Gordon showed me some functions in the car package. Let's go over that again; it would be most helpful. 
+
+Let's talk about the output. 
+
+Now, let's look at just the breeders to see what the pattern of survival looks like in the Kaplan Meier curve. These data contain both known and unknown age birds due to immigrants into the study tract. The starting date is the first date that a bird was classified as a breeder. The end date is death or 10/15/2015, the most recent census in the database. 
+
+```{r}
+library(survival)
+library(car)
+library(kinship2)
+setwd("C:/Users/Erin/Reports")
+df <- read.csv(file="Breeders_Fall.csv")
+april.dates <- read.csv(file="April_Census_Dates.csv")
+apdat <- as.list(april.dates)
+
+#remove duplicate records (because I still have mulitple records for each individual)
+brdrs <- df[!duplicated(df),]
+
+#convert dates to date format
+brdrs$FirstDateBred <- as.Date(brdrs$FirstDateBred, format = "%m/%d/%Y")
+brdrs$LastObsDate <- as.Date(brdrs$LastObsDate, format = "%m/%d/%Y")
+
+#get year only for YrClass
+year <- as.POSIXlt(brdrs$LastObsDate)$year+1900
+brdrs["YrDied"]<- year
+brdrs$Yr <- as.numeric(brdrs$Yr)
+
+#subtract dates to get number of days
+date.diff<- brdrs$LastObsDate-brdrs$FirstDateBred
+
+#add to data frame
+brdrs["days"] <- date.diff
+brdrs$days <-as.numeric(brdrs$days)
+
+brdrs["yrs"] <- brdrs$days/365
+
+brdrs$FirstDateBred <- as.numeric(brdrs$FirstDateBred)
+brdrs$LastObsDate <- as.numeric(brdrs$LastObsDate)
+
+#add censorship, 0 = alive/right censored, 1 = dead after 1st year breeding, novice
+brdrs["censorshipnov"] <- NA
+brdrs$censorshipnov <- 1
+
+#this is not quite right. I want the day of the April census the year following becoming a breeder for the first time, so instead of 365, something like April Census year of 1st breeding + 1? I don't know the R snytax for this. 
+brdrs$censorshipnov[which(brdrs$days>=365)]<- 0
+
+#censorship status for breeding span after first year, exper breeders
+brdrs["censorship"] <- 1
+#add 0's to those still alive 2015-06-17
+brdrs$censorship[which(brdrs$LastObsDate=="2015-06-17")]<-0
+
+
+#get rid of birds breeding before 1980
+brdrs.new <- subset(brdrs, FirstYr > 1980, select=ID:censorship)
+
+#Create survival object
+my.survyr <- Surv(brdrs.new$yrs, brdrs.new$censorship)
+my.survdy <- Surv(brdrs.new$days, brdrs.new$censorship)
+my.fityr <- survfit(my.survyr~1)
+my.fitdy <- survfit(my.survdy~1)
+plot(my.fitdy, xlim=c(0,4000), xlab="Days", ylab="Survival", main="Breeders")
+plot(my.fityr, xlim=c(0,15), xlab="Years", ylab= "Survival", main="Breeders")
+
+#Simple cox model for novice and experienced breeders 
+jay.cox <- coxph(my.survyr~1, data= brdrs.new)
+summary(jay.cox)
+
+jay.exp <- survreg(my.survyr~1, dist="exponential")
+summary(jay.exp)
+
+jay.wb <- survreg(my.survyr~1, dist = "weibull")
+summary(jay.wb)
+
+#year of first breeding
+jay.yr <- coxph(my.survyr~brdrs.new$Yr, data=brdrs.new)
+summary(jay.yr)
+#age at first breeding (for some, minimum age)
+jay.age <- coxph(my.survyr~brdrs.new$AgeFirstBreed)
+summary(jay.age)
+
+```
+I'm not really sure what to do with this output. I have some idea of what it means but I don't know what it means for the next step. 
+
+Note that with the breeders, I did not split it up between novice and experienced because I don't know how to add in the April census dates. I'll ask about that when we meet.  
+
+Looking at the KM curves for all known-age birds vs. the KM curve for breeders only, there is a steeper dropoff in cumulative survival with all birds. This makes sense because we already know that the first year of life is really dangerous and a lot of jays die. The KM curve for breeders shows a "steadier" decrease in cumulative survival over time. 
+
+Alright, so I don't know how to add in the April census dates which is what I want (yet), but just for fun, let's use the interval from date of first recorded as breeder to 365 days later. 
+
+```{r}
+nov.surv <- Surv(brdrs.new$yrs, brdrs.new$censorshipnov, type=c('right'))
+nov.fit <- survfit(nov.surv~1)
+plot(nov.fit, xlim=c(0,1), xlab="Years", ylab="Cumulative Survival", main="Novice and Exp Breeders")
+
+```
+
+I restricted the time to one year because after that, it's not nice to look at. I think what this suggests is that there is some death in that first year but then it more or less stays the same. Here's the KM curve across 15 years. 
+
+ABout 5 minutes after I ran the code above, I had a thought, perhaps I did not code this correctly. I defined time period as day of first breeding to either death at one year, or living after one year. So will this curve show the same survival beyond that because everyone was alive? So the 15 year curve is not really useful, but the first year time period is valid? 
+
+```{r}
+plot(nov.fit, xlim=c(0,15), xlab="Years", ylab="Cumulative Survival", main="Novice and Exp Breeders")
+```
+
+
+
+References
+
+Fox, G. A. 2001. Failure-time analysis in Design and Analysis of Ecological Experiments. 
+
+Fox, G. A. 2009. Introduction to failure time data & censored regression.
+
+Keli, P. 2015. Survival analysis: basic terms, the exponential model, censoring, examples in R and JAGS. 
+
+Rodriguez, G. 2007. Survival Models. 
+
+Slud, E. V. Survival Analysis Models & Statistical Methods - Short Course. 
