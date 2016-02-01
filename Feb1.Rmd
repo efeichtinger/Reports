@@ -1,0 +1,99 @@
+---
+title: "Report - Week of 2/1"
+author: "Erin Feichtinger"
+date: "February 1, 2016"
+output: html_document
+---
+```{r, echo=FALSE}
+Bien.T <- function(L, v, w, r){
+  time <- L * drop(v%*%w)/(drop(v%*%r%*%w))
+  return(time)
+}
+
+
+P <- 0.7
+F <- 1
+
+gb <- vector()
+sig <- vector()
+eig <- vector()
+eig2 <- vector()
+poc <- vector()
+jsur <- vector()
+r <- vector()
+genT <- vector()
+nrepd <- vector()
+dpr <- vector()
+BT <- vector()
+gbr <- vector()
+
+gbar <- 0
+ii <- 0
+
+gb <- 0.01 * (1:99)
+S <- 0
+for (h in 8:8){
+  S <- (h - 2) * 0.1
+phi <- 0
+for (k in 0:20){
+  phi <- (k - 10) * 0.1
+  for (i in 1:99){
+    gbar <- gb[i]
+    for (j in 0:((100 * min (gbar, 1- gbar)-1))){
+      ii <- ii + 1
+      sigma <- 0.01 * j
+        A <-matrix(ncol=4, nrow=4, byrow=TRUE, data=c(
+          S*(1-(gbar-sigma)), (1 + phi) * F/2, 0, (1-phi) * F/2,
+          S * (gbar-sigma), P, 0, 0,
+          0, (1 - phi) *F/2, S*(1 - (gbar + sigma)), (1 + phi) * F/2,
+          0, 0, S * (gbar + sigma), P) )
+      
+      gbr[ii] <- gbar
+      jsur[ii] <- S
+      sig[ii] <- sigma
+      eig[ii] <- Re(eigen(A)[[1]][[1]])
+      eig2[ii] <- Re(eigen(A)[[1]][[2]])
+      r[ii] <- Re(log(eig[ii]))
+      #r[ii] <- Re(log(Re(eigen(A)[[1]][[1]])))
+      genT[ii] <- generation.time(A, r = c(1,3), c = c(2,4))
+      nrepd[ii] <- net.reproductive.rate(A, r = c(1,3), c = c(2,4))
+      dpr[ii] <- damping.ratio(A)
+      poc[ii] <- phi
+    #
+      split.mat <- splitA(A, r = c(1,3), c = c(2,4))
+      fert.mat <- split.mat$F
+      ssd <- eigen(A)$vectors[,1]/sum(eigen(A)$vectors[,1])
+      rvv <- (eigen(t(A))$vectors[,1]/eigen(t(A))$vectors[1,1])
+      bienvenu <- Bien.T(eig[ii], rvv, ssd, fert.mat)
+      BT[ii] <- bienvenu
+      fund <- fundamental.matrix(A, split.mat$T)
+    }
+}
+}
+}
+
+eig.dat <- data.frame(gbar = gbr, js = jsur, sigma = sig, eigen = eig, eigen2 = eig2, pc = poc, instr = r, R0 = nrepd, damp = dpr, time = genT, BVT = BT)
+
+##New data frame without T2/Bienvenu's T 
+eig.new2 <- eig.dat[,1:10]
+names(eig.new2) <- c("gbar", "jsur", "sigma", "lam","eigen2", "phi", "r", "R0","DampR", "time")
+
+par(mfrow=c(2,1))
+par(mar=c(4,4,2,2))
+rplot <- scatter2D(eig.new2$R0, eig.new2$time, colvar=eig.new2$r,
+                   xlab = "R0", ylab="T", clab = "r")
+rplotb <- scatter2D(eig.new2$time, eig.new2$R0, colvar=eig.new2$r,
+                    xlab = "T", ylab ="R0", clab="r")
+
+rplotc <- scatter2D(eig.new2$r, eig.new2$R0, colvar = eig.new2$time, 
+                    xlab = "r", ylab = "R0", clab = "T")
+rplotd <- scatter2D(eig.new2$r, eig.new2$time, colvar = eig.new2$R0, 
+                    xlab = "r", ylab = "T", clab = "R0")
+
+```
+
+I plotted \lambda as a function of R0 and T. I used a 2D plot for this with scatter3D because the 3D plot was not interpretable to me. As R0 increases \lambda increases, as would be expected. \lambda increases as T decreases. Notice that T levels off around 4 and doesn't decrease further. 
+
+I've been focused on writing the discussion section of the manuscript. Bruce suggested three main points for discussion 1) relating the results to biological intuition as much as that's possible, 2) contrast with previous models of growth heterogeneity and 3) how growth rate heterogeneity is different from survival and fertility heterogeneity. Gordon had a few things to add to that including a discussion of the dependence on phi and how these correlations could come about in the real world. I have written some discussion on 3 scenarios - purely clonal reproduction, no phenotypic correlation and a negative correlation. 
+
+Furthermore, we want a discussion of T and R0. From the plots of r as a function of T and R0, I think this is telling us that T doesn't change much once it gets to around 5 but R0 does. 
