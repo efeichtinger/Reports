@@ -1,11 +1,16 @@
 ---
+output: pdf_document
+---
+---
 title: "Report - Week of 2/1"
 author: "Erin Feichtinger"
 date: "February 1, 2016"
 output: html_document
----
+
+Last week we talked about elements of the discussion of the growth het manuscript. Then we talked about the jay survival analyses and a different approach to modeling survival for novice breeders and experienced breeders. I understand the approach Gordon suggested now. I have to rearrange the data a little bit but this won't be difficult because there are existing queries in the data base that will give me exactly what I want. 
 ```{r, echo=FALSE}
-setwd(C:\\Users\\Erin\\Reports)
+library(popbio)
+library(plot3D)
 Bien.T <- function(L, v, w, r){
   time <- L * drop(v%*%w)/(drop(v%*%r%*%w))
   return(time)
@@ -91,16 +96,16 @@ rplotc <- scatter2D(eig.new2$r, eig.new2$R0, colvar = eig.new2$time,
 rplotd <- scatter2D(eig.new2$r, eig.new2$time, colvar = eig.new2$R0, 
                     xlab = "r", ylab = "T", clab = "R0")
 #this includes juvenile survival 0.3, 0.4, 0.5
-eig2 <- read.csv("eignew2.csv")
-rplote <- scatter2D(eig2$R0, eig2$time, colvar=eig2$r,
-                   xlab = "R0", ylab="T", clab = "r")
-rplotf <- scatter2D(eig2$time, eig$R0, colvar=eig$r,
-                    xlab = "T", ylab ="R0", clab="r")
+#eig2 <- read.csv("eignew2.csv")
+#plote <- scatter2D(eig2$R0, eig2$time, colvar=eig2$r,
+                   #xlab = "R0", ylab="T", clab = "r")
+#rplotf <- scatter2D(eig2$time, eig$R0, colvar=eig$r,
+                    #xlab = "T", ylab ="R0", clab="r")
 
-rplotg <- scatter2D(eig2$r, eig2$R0, colvar = eig2$time, 
-                    xlab = "r", ylab = "R0", clab = "T")
-rploth <- scatter2D(eig2$r, eig2$time, colvar = eig2$R0, 
-                    xlab = "r", ylab = "T", clab = "R0")
+#rplotg <- scatter2D(eig2$r, eig2$R0, colvar = eig2$time, 
+                    #xlab = "r", ylab = "R0", clab = "T")
+#rploth <- scatter2D(eig2$r, eig2$time, colvar = eig2$R0, 
+                    #xlab = "r", ylab = "T", clab = "R0")
 
 
 ```
@@ -110,3 +115,50 @@ I plotted lambda as a function of R0 and T. I used a 2D plot for this with scatt
 I've been focused on writing the discussion section of the manuscript. Bruce suggested three main points for discussion 1) relating the results to biological intuition as much as that's possible, 2) contrast with previous models of growth heterogeneity and 3) how growth rate heterogeneity is different from survival and fertility heterogeneity. Gordon had a few things to add to that including a discussion of the dependence on phi and how these correlations could come about in the real world. I have written some discussion on 3 scenarios - purely clonal reproduction, no phenotypic correlation and a negative correlation. 
 
 Furthermore, we want a discussion of T and R0. From the plots of r as a function of T and R0, I think this is telling us that T doesn't change much once it gets to around 5 but R0 does. I don't fully understand the interpretation changes in the population growth rate due to T and R0. 
+
+Another thing that I would like to discuss today is the scenario where phi = 0. I have in my notes last week that we are talking about means here. Could we revisit this? The following are two examples where phi = 0 in matrix A1 and phi = 0.5 in A2. This is for comparasion to help me understand. 
+
+```{r, echo = FALSE}
+library(popbio)
+#A1: s= 0.4, g = 0.4, sigma = 0.1, phi = 0, P = 0.7
+x1 <- c(0.28, 0.5,0, 0.5, 0.12, 0.7, 0, 0, 0, 0.5, 0.2, 0.5, 0, 0, 0.2, 0.7)
+A1 <- matrix(x1, nrow=4, ncol=4, byrow=TRUE)
+colnames(A1) <- c("slow juvenile", "slow adult", "fast juvenile", "fast adult")
+rownames(A1) <- c("slow juvenile", "slow adult", "fast juvenile", "fast adult")
+A1
+#A2: s = 0.4, g=0.4, sigma = 0.1, phi = 0.5, P = 0.7
+x2 <- c(0.28, 0.75, 0, 0.25, 0.12, 0.7, 0, 0, 0, 0.25, 0.2, 0.75, 0, 0, 0.2, 0.7)
+A2 <- matrix(x2, nrow=4, ncol=4, byrow=TRUE)
+colnames(A2) <- c("slow juvenile", "slow adult", "fast juvenile", "fast adult")
+rownames(A2) <- c("slow juvenile", "slow adult", "fast juvenile", "fast adult")
+A2
+
+eigenA1 <- eigen.analysis(A1)
+eigenA2 <- eigen.analysis(A2)
+
+eigenA1$lambda1
+eigenA2$lambda1
+eigenA1$stable.stage
+eigenA2$stable.stage
+eigenA1$repro.value
+eigenA2$repro.value
+
+
+```
+In these cases, s = 0.4, g = 0.4, sigma = 0.1, and P = 0.7. The only difference is in phi where phi = 0 in A1 and phi = 0.5 in A2. From the eigen analysis function output we can see that when phi  = 0, there is a higher proportion of slow juveniles and slow adults than when phi = 0.5. The population growth rate is lower when phi = 0 compared to a highish positive value like 0.5. If we have more slow adults present in this case, then we would expect the population growth rate to decrease with increasing sigma because slows have a shorter expected reproductive lifespan. And if there is no correlation in phenotype, equal numbers of each type are expected. But if we make phi positive then we get more fast adults present in the population who are producing more fasts than slows. So not only are they expected to spend more time in the adult stage, they are producing mostly fast offspring. Or something like that... 
+
+I have written several paragraphs in the discussion and I really think it's taking shape (finally!). I'll need to clean up a few things before sending the next draft. 
+
+I talk about the model from Acker et al. 2014 in the discussion. I am a little confused on a few concepts from the paper. Is age at reproduction the same as generation time? Or at least one definition that is. I'm also don't fully understand what they mean by constrained generation time. I mean, I know what that means on the face of it but I'm having trouble interpreting the results and comparing this to the case where generation time is unconstrained. Acker et al. state that they want to "disentangle the effect of heterogeneity in itself from the effect of modifying generation time". Heterogeneity in age at reproduction will change generation time but I think that this is not the primary mechanism in which population viability is increased. In fact, this is what they find. There is a desynchronization of flowering times when there is heterogeneity in age at reproduction which increases population viability. 
+
+I haven't worked much on the jays since last Wednesday due to my focus on the manuscript, teaching and my R course. However, now that I have made headway on writing I can spend some time on the jay survival analyses. 
+
+Plan for February 2 - 9
+
+1. Finish cleaning up most recent draft of manuscript and incorporate any feedback/changes discussed today from the last draft I sent a couple of weeks ago. 
+2. Send updated draft to Gordon and Bruce. 
+3. Add covariates of interest to the jay data frame and start fitting models. 
+4. Anything else deemed necessary and appropriate as determined in the meeting today. 
+
+
+
