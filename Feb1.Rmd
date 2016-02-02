@@ -5,6 +5,7 @@ date: "February 1, 2016"
 output: html_document
 ---
 ```{r, echo=FALSE}
+setwd(C:\\Users\\Erin\\Reports)
 Bien.T <- function(L, v, w, r){
   time <- L * drop(v%*%w)/(drop(v%*%r%*%w))
   return(time)
@@ -89,11 +90,23 @@ rplotc <- scatter2D(eig.new2$r, eig.new2$R0, colvar = eig.new2$time,
                     xlab = "r", ylab = "R0", clab = "T")
 rplotd <- scatter2D(eig.new2$r, eig.new2$time, colvar = eig.new2$R0, 
                     xlab = "r", ylab = "T", clab = "R0")
+#this includes juvenile survival 0.3, 0.4, 0.5
+eig2 <- read.csv("eignew2.csv")
+rplote <- scatter2D(eig2$R0, eig2$time, colvar=eig2$r,
+                   xlab = "R0", ylab="T", clab = "r")
+rplotf <- scatter2D(eig2$time, eig$R0, colvar=eig$r,
+                    xlab = "T", ylab ="R0", clab="r")
+
+rplotg <- scatter2D(eig2$r, eig2$R0, colvar = eig2$time, 
+                    xlab = "r", ylab = "R0", clab = "T")
+rploth <- scatter2D(eig2$r, eig2$time, colvar = eig2$R0, 
+                    xlab = "r", ylab = "T", clab = "R0")
+
 
 ```
 
-I plotted \lambda as a function of R0 and T. I used a 2D plot for this with scatter3D because the 3D plot was not interpretable to me. As R0 increases \lambda increases, as would be expected. \lambda increases as T decreases. Notice that T levels off around 4 and doesn't decrease further. 
+I plotted lambda as a function of R0 and T. I used a 2D plot for this with scatter3D because the 3D plot was not interpretable to me. As R0 increases Lambda increases, as would be expected. Lambda increases as T decreases. Notice that T levels off around 4 and doesn't decrease further. 
 
 I've been focused on writing the discussion section of the manuscript. Bruce suggested three main points for discussion 1) relating the results to biological intuition as much as that's possible, 2) contrast with previous models of growth heterogeneity and 3) how growth rate heterogeneity is different from survival and fertility heterogeneity. Gordon had a few things to add to that including a discussion of the dependence on phi and how these correlations could come about in the real world. I have written some discussion on 3 scenarios - purely clonal reproduction, no phenotypic correlation and a negative correlation. 
 
-Furthermore, we want a discussion of T and R0. From the plots of r as a function of T and R0, I think this is telling us that T doesn't change much once it gets to around 5 but R0 does. 
+Furthermore, we want a discussion of T and R0. From the plots of r as a function of T and R0, I think this is telling us that T doesn't change much once it gets to around 5 but R0 does. I don't fully understand the interpretation changes in the population growth rate due to T and R0. 
