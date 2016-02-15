@@ -17,7 +17,11 @@ My last report included some figures with r (intrinsic rate of growth) as a func
 * Adjust color bar so it is the same length for T and R0
 * Increase sampling intensity in g if needed, see how new symbols look  
 
+I did rescale the axes (which takes care of problem 2) and the dimensions. The package that I am using for the figures does not appear to have an option for changing the symbol. The arguments to change symbol type from plot in base R do not work with the function (although some arguments from plot do work with scatter2D). There could be another function in the package plot3D that could be useful.  
 
+I asked Gordon a few days after our meeting for some clarification, especially on the last three suggestions. He suggested using a period/dot for symbol type. In base plot, it's pch = ".". He says increase the sampling intensity of points like having even smaller increments in g. But, this problem could be solved with changing the symbols. The current dots overlap each other and could be obscuring patterns. 
+
+I could try using other packages with 3D plotting functions or try persp-based 3D plots. I don't know how useful using 2D plots is. 
 
 
 
