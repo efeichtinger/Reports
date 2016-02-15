@@ -1,0 +1,23 @@
+---
+title: "Weekly Report 2/15"
+author: "Erin Feichtinger"
+date: "February 15, 2016"
+output: html_document
+---
+
+It's been two weeks since Gordon and I last met because I came down with a cold that lasted a week and to top it off, I got the worst migraine in recent memory last Friday that put me in bed all afternoon. Anyway, here is a summary from when we last left off on February 2, 2016. 
+
+My last report included some figures with r (intrinsic rate of growth) as a function of T and R0. Gordon had some suggestions on how to improve the figures so we are seeing real patterns and not artifacts in the graphs.  
+
+## Changes suggested 
+* Remove points where r = 0 (R0 = 1)
+* Rescale axes
+* Change dimensions
+* Change symbol type
+* Adjust color bar so it is the same length for T and R0
+* Increase sampling intensity in g if needed, see how new symbols look  
+
+
+
+
+
