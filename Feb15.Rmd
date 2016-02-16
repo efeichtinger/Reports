@@ -23,5 +23,156 @@ I asked Gordon a few days after our meeting for some clarification, especially o
 
 I could try using other packages with 3D plotting functions or try persp-based 3D plots. I don't know how useful using 2D plots are to display the results. 
 
+```{r, echo = FALSE}
+library(popbio)
+library(ggplot2)
+library(plot3D)
+library(graphics)
+library(scatterplot3d)
+ #function for estimating Bienvenus's T
+Bien.T <- function(L, v, w, r){
+  time <- L * drop(v%*%w)/(drop(v%*%r%*%w))
+  return(time)
+}
 
 
+P <- 0.7
+F <- 1
+
+gb <- vector()
+sig <- vector()
+eig <- vector()
+eig2 <- vector()
+#poc- vector to store parent-offspring correlation phi
+poc <- vector()
+jsur <- vector()
+r <- vector()
+genT <- vector()
+nrepd <- vector()
+dpr <- vector()
+BT <- vector()
+fd <- vector()
+#fund1 <- vector()
+#fund2 <- vector()
+#fund3 <- vector()
+#fund4 <- vector()
+gbr <- vector()
+
+gbar <- 0
+ii <- 0
+
+gb <- 0.01 * (1:99)
+S <- 0
+for (h in 8:8){
+  S <- (h - 2) * 0.1
+phi <- 0
+for (k in 0:20){
+  phi <- (k - 10) * 0.1
+  for (i in 1:99){
+    gbar <- gb[i]
+    for (j in 0:((100 * min (gbar, 1- gbar)-1))){
+      ii <- ii + 1
+      sigma <- 0.01 * j
+        A <-matrix(ncol=4, nrow=4, byrow=TRUE, data=c(
+          S*(1-(gbar-sigma)), (1 + phi) * F/2, 0, (1-phi) * F/2,
+          S * (gbar-sigma), P, 0, 0,
+          0, (1 - phi) *F/2, S*(1 - (gbar + sigma)), (1 + phi) * F/2,
+          0, 0, S * (gbar + sigma), P) )
+      
+      gbr[ii] <- gbar
+      jsur[ii] <- S
+      sig[ii] <- sigma
+      eig[ii] <- Re(eigen(A)[[1]][[1]])
+      eig2[ii] <- Re(eigen(A)[[1]][[2]])
+      r[ii] <- Re(log(eig[ii]))
+      #r[ii] <- Re(log(Re(eigen(A)[[1]][[1]])))
+      genT[ii] <- generation.time(A, r = c(1,3), c = c(2,4))
+      nrepd[ii] <- net.reproductive.rate(A, r = c(1,3), c = c(2,4))
+      dpr[ii] <- damping.ratio(A)
+      poc[ii] <- phi
+    #
+      split.mat <- splitA(A, r = c(1,3), c = c(2,4))
+      fert.mat <- split.mat$F
+      ssd <- eigen(A)$vectors[,1]/sum(eigen(A)$vectors[,1])
+      rvv <- (eigen(t(A))$vectors[,1]/eigen(t(A))$vectors[1,1])
+      bienvenu <- Bien.T(eig[ii], rvv, ssd, fert.mat)
+      BT[ii] <- bienvenu
+      fund <- fundamental.matrix(A, split.mat$T)
+      #fd[ii]<- fund
+    #spits out first element so this is only for slow juveniles staying slow
+    #I'm not sure how to store the output
+      #fund1[ii] <- fund$N
+      #fund2[ii] <- fund$var
+      #fund3[ii] <- fund$meaneta
+      #fund4[ii] <- fund$vareta
+    }
+}
+}
+}
+
+eig.dat <- data.frame(gbar = gbr, js = jsur, sigma = sig, eigen = eig, eigen2 = eig2, pc = poc, instr = r, R0 = nrepd, damp = dpr, time = genT, BVT = BT)
+```
+
+Previously, I had used the function scatter2d in package plot3D but I could not change the symbol type from the open dots. From what I understand, that is how the scatter2d plot is set up (to use open points). I couldn't find a way to change it after searching for some time online so I moved on to trying different functions for making graphics. I made a few 2d plots using the base plot function in r where it is easy to change the point type. I also used another function scatterplot3d (which is also the package name) that uses arguments from plot.   
+
+```{r, echo = FALSE}
+#2d plot T and R0
+plot1 <- plot(eig.new2$time, eig.new2$R0, type = "p", pch = ".",
+              xlab = "T", ylab = "R0", main = "",ylim = c(0,2),
+             xlim = c(3.5,9), pin = c(5,5))
+#2d plot T and r
+plot2 <- plot(eig.new2$time, eig.new2$r, type = "p", pch = ".",
+              xlab = "T", ylab = "r", xlim = c(3.5,9), pin =c(5,5))
+#2d plot R0 and r
+plot3 <- plot(eig.new2$R0, eig.new2$r, type = "p", pch = ".", 
+              xlab = "R0", ylab = "r", xlim = c(0,2), pin = c(5,5))
+par(mar = c(3,3,3,5))
+plot4<- scatterplot3d(eig.new2$time, eig.new2$R0, eig.new2$r, pch=".",
+      angle=45, scale.y = 0.8, xlab = "Time", ylab= "R0", zlab= "r", 
+      highlight.3d= FALSE, color = "dark green",
+      xlim = c(3.5,9), ylim = c(0,2), zlim = c(-0.3,0.2))
+
+plot5 <- scatterplot3d(eig.new2$time, eig.new2$r, eig.new2$R0, 
+        pch=".", angle = 45, scale.y = 1, color = "red",
+        xlab = "Generation Time", ylab = "r", zlab = "R0",
+        highlight.3d = FALSE, xlim=c(3.5,9), ylim = c(-0.3,0.2),
+        zlim = c(0,2), pin = c(10,10))
+
+plot6 <- scatterplot3d(eig.new2$time, eig.new2$r, eig.new2$R0, 
+        angle = 45, scale.y = 1, pch =".", xlab = "Generation Time", ylab =  "r", 
+        zlab = "R0", highlight.3d = TRUE, xlim=c(3.5,9), ylim = c(-0.3,0.2),
+        zlim = c(0,2), pin = c(10,10))
+
+#different angle and color intensity related to y coordinates (r here)
+plot7 <- scatterplot3d(eig.new2$time, eig.new2$r, eig.new2$R0, 
+      angle = 60, scale.y = 1, pch =".", xlab = "Generation Time", ylab = "r", 
+      zlab = "R0", highlight.3d = TRUE, xlim=c(3.5,9), ylim = c(-0.3,0.2),
+      zlim = c(0,2), pin = c(10,10))
+plot8 <- ggplot(eig.new2, aes(eig.new2$time, eig.new2$r))
+plot8 + geom_point(shape=46, color = 'darkblue') + xlim(3.5,9) + ylim(-0.3,0.2) + 
+  labs(x = "Generation Time", y = "r") 
+
+plot9 <- ggplot(eig.new2, aes(eig.new2$R0, eig.new2$r))
+plot9 + geom_point(shape=46, color = 'darkblue') + xlim(0,2) + ylim(-0.3,0.2) +
+  labs(x = "R0", y = "r")
+
+plot10 <- ggplot(eig.new2, aes(eig.new2$time, eig.new2$R0))
+plot10 + geom_point(shape=46, color = 'darkgreen') + xlim(3.5,9) + ylim(0,2) +
+  labs(x = "T", y = "R0")
+
+plot12 <- ggplot(eig.new2, aes(eig.new2$R0, eig.new2$time))
+plot12 + geom_point(shape=46, color = 'purple') + xlim(0,2) + ylim(3.5,9) +
+  labs(x = "R0", y = "T")
+
+```
+
+The colors can be easily changed and we could just use black symbols, too. I'm not sure that these new figures give us more information that we couldn't see before. The fourth through sixth plots are 3d but the rest are 2d. Again, I wasn't able to change the open circles to smaller dots using scatter2d in plot3d. I would like to put the figures on hold for the next week or so and talk about the writing in the manuscript. 
+
+I have another draft that I sent to Gordon and I hope we can start to go through it soon. My main goal for the meeting is to talk about the writing if Gordon has had a chance to read it. I updated the results section several weeks ago so we should be at least able to talk about that. I just sent the most recent version which has a discussion added to it.  
+
+General plan for next week  
+
+1. Make suggested changes to manuscript
+2. Work on graphs 
+3. Jay survival models 
+4. Anything else deemed necessary 
