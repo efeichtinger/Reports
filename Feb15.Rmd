@@ -111,6 +111,8 @@ for (k in 0:20){
 }
 
 eig.dat <- data.frame(gbar = gbr, js = jsur, sigma = sig, eigen = eig, eigen2 = eig2, pc = poc, instr = r, R0 = nrepd, damp = dpr, time = genT, BVT = BT)
+eig.new2 <- eig.dat[,1:10]
+names(eig.new2) <- c("gbar", "jsur", "sigma", "lam","eigen2", "phi", "r", "R0","DampR", "time")
 ```
 
 Previously, I had used the function scatter2d in package plot3D but I could not change the symbol type from the open dots. From what I understand, that is how the scatter2d plot is set up (to use open points). I couldn't find a way to change it after searching for some time online so I moved on to trying different functions for making graphics. I made a few 2d plots using the base plot function in r where it is easy to change the point type. I also used another function scatterplot3d (which is also the package name) that uses arguments from plot.   
