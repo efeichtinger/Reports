@@ -2,7 +2,7 @@
 title: "Weekly Report 2/15"
 author: "Erin Feichtinger"
 date: "February 15, 2016"
-output: html_document
+output: pdf_document
 ---
 
 It's been two weeks since Gordon and I last met because I came down with a cold that lasted a week and to top it off, I got the worst migraine in recent memory last Friday that put me in bed all afternoon. Anyway, here is a summary from when we last left off on February 2, 2016. 
