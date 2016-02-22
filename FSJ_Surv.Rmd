@@ -175,7 +175,7 @@ brage.cx <- coxph(my.survyr~brdrs.new$AgeFirstBreed)
 summary(brage.cx)
 ```
 
-I think the output is telling us that age at first breeding is significant but I would like to wait until I get the "new" dataset to really say something about this. I have to look at the relationship between years breeding and age to see how correlated they are. Make a plot of years breeding vs. age to see what the relationship looks like. 
+I think the output is telling us that age at first breeding is significant but I would like to wait until I get the "new" data set to really say something about this. I have to look at the relationship between years breeding and age to see how correlated they are. Make a plot of years breeding vs. age to see what the relationship looks like. 
 
 I consulted with Dr. Angela Tringali, the new post doc/lab manager in the Avian Ecology lab at Archbold on some questions I had about the data.  
 
@@ -183,11 +183,11 @@ I consulted with Dr. Angela Tringali, the new post doc/lab manager in the Avian 
 1. How do I test the assumption that the hazards are proportional?
 2. How to build the likelihood function with right censored data points? 
 
-As far as I know, the only censored data in the jay data are birds that are still alive and these would be right-censored. From Gordon's book chapter, I have come to realize that with censored regression we can estimate the probability that any value of y is censored. Do I need to worry about this for the jay data? He also writes that we need a likelihood fucntion that uses information about the censored data. Eqn 5.4 in the book is the log-likelihood for N data points where k of which are censored. 
+As far as I know, the only censored data in the jay data are birds that are still alive and these would be right-censored. From Gordon's book chapter, I have come to realize that with censored regression we can estimate the probability that any value of y is censored. Do I need to worry about this for the jay data? He also writes that we need a likelihood function that uses information about the censored data. Eqn 5.4 in the book is the log-likelihood for N data points where k of which are censored. 
 
 I had to refresh my memory on concepts related to survival modeling, including the following:  
 *Survival function S(t) is the probability an individual with survive beyond time t, Pr{T > t}, which is also the compliment of the cumulative distribution function F(t) = Pr{T < t} which is the probability that the event occurs by time t.  
-*Hazard function h(t) is the instantaneous rate of the even occuring/instantaneous risk of dying, or other words, the number of individuals experiencing event in interval beginning with t divided by the number of individuals surviving at time t times the interval width.  
+*Hazard function h(t) is the instantaneous rate of the even occurring/instantaneous risk of dying, or other words, the number of individuals experiencing event in interval beginning with t divided by the number of individuals surviving at time t times the interval width.  
 *Cumulative hazard - sum of risks faced in the duration 0 to t.  
 
 Are the jay data an example of Type I censoring? 
@@ -197,9 +197,97 @@ I definitely need some more guidance on this whole likelihood business and how i
 
 ###Model types
 *Accelerated Life Models
-*Weibull Model
-*Exponential
-*Cox Proportional Hazards
-*Cox models with time-dependent and tim-varying effects
+*Weibull Model - parametric approach
+*Exponential - parametric approach
+*Cox Proportional Hazards - semi parametric, baseline hazard is non-parametric
+*Cox models with time-dependent and time-varying effects
 
+In the R package survival, the survival object Surv has time and event as a status indicator. The info page says "for right censored data, this is the follow up time". Is this the whole time a jay was alive? Or do I use time and time2 and put in the start date and the end date? 
+
+```{r}
+library(survival)
+library(car)
+library(kinship2)
+
+##Read in CSV file of male and female breeders with mulitple rows for each bird
+bird.df <- read.csv("Erin_Breeders_All_Years.csv")
+str(bird.df)
+
+#remove duplicates  - for years where there was more than one nest in a year
+jay.df<- bird.df[!duplicated(bird.df),]
+str(jay.df)
+
+colnames(jay.df)[1] <- "ID"
+colnames(jay.df)[2] <- "Band"
+
+#convert dates to date format
+jay.df$MinDate <- as.Date(jay.df$MinDate, format = "%m/%d/%Y")
+jay.df$LastObsDate <- as.Date(jay.df$LastObsDate, format = "%m/%d/%Y")
+
+#subtract dates to get number of days
+date.diff<- jay.df$LastObsDate-jay.df$MinDate
+
+#and survival period in years, account for leap year 
+jay.df["Yrs"] <- date.diff/365.25
+
+#very important piece of code for the model to work properly, remove any 
+#weird entries like birds that have negative years of experience or a negative
+#survival interval 
+jay.df <- subset(jay.df, jay.df$YrsExp >= 0 & jay.df$Yrs > 0)
+str(jay.df)
+
+#add column for censorship status, in survival package - 0=alive, 1=dead
+jay.df["censorship"] <- 1
+#If last observed date = 10/14/2015, 0 for still alive today
+jay.df$censorship[which(jay.df$LastObsDate=="2015-10-14")]<-0
+
+
+#change back to numeric for survival object 
+jay.df$MinDate <- as.numeric(jay.df$MinDate)
+jay.df$LastObsDate <- as.numeric(jay.df$LastObsDate)
+jay.df$Yrs <- as.numeric(jay.df$Yrs)
+
+#Create survival object - IS THIS CORRECT??
+jay.ob <- Surv(jay.df$Yrs, jay.df$censorship, type =c('right'))
+jay.lifetab <- survfit(jay.ob~1)
+jay.fit <- plot(jay.lifetab, xlab = "Time (years)", 
+                ylab = "Cumulative Survival", main = "FL Scrub Breeder survival")
+```
+
+
+so, the cumulative survival of breeders looks linearish over time (if I did this correctly, that is!). Compare to the first figure. Just a note, the breeder data set that I used in the first figure only has one row per individual with a date starting breeding and a death or censorship date (meaning still alive as of 10/14/2015). This data set however, has multiple rows for individuals for each year bred. That way I have a column for age and breeder experience at any given year for each bird.
+
+```{r}
+plot(jay.df$YrsExp, jay.df$CurrentAge, xlab = "Years Experience",
+     ylab = "Current Age")
+plot(jay.df$CurrentAge, jay.df$YrsExp, xlab = "Current Age",
+     ylab = "Years Experience")
+```
+
+I've been doing some mental gymnastics on which way this should go. My first thought is that I want to ask if your years of experience is a function of age? As birds get older, the number of years of experience increases (obviously, it has too). However, there are several possible ages at each level of experience. Obviously, the possible ages a bird could be decreases as breeder experience increases, for example, a bird with 12 years of experience has to be at least 12 years old, but it could be 13, 14, or 15. Looking at the first plot (years experience on the x axis), we see that there are birds from age 1 to 10 breeding for the first time. So, I think this means we can look at these two things separately? 
+
+```{r}
+#Fitting some basic Cox Models 
+#First Cox Model
+cox1 <- coxph(jay.ob ~ YrsExp, data = jay.df)
+cox2 <- coxph(jay.ob ~ Sex, data = jay.df)
+cox3 <- coxph(jay.ob ~ CurrentAge, data = jay.df)
+summary(cox1)
+summary(cox2)
+summary(cox3)
+
+extractAIC(cox1)
+extractAIC(cox2)
+extractAIC(cox3)
+```
+
+My suspicion is that I did not do something correctly because the degrees of freedom used is one. That doesn't seem right...  
+
+
+```{r}
+AFT.exp <- survreg(jay.ob ~ YrsExp, data = jay.df, dist = "exponential")
+summary(AFT.exp)
+AFT.weibull <- survreg(jay.ob ~ YrsExp, data = jay.df, dist = "weibull")
+summary(AFT.weibull)
+```
 
