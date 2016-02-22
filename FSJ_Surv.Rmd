@@ -1,13 +1,15 @@
 ---
 title: "Florida Scrub-Jay Survival"
 author: "Erin Feichtinger"
-date: "Tuesday, February 16, 2016"
+date: "Monday, February 21, 2016"
 output: html_document
 ---
 
 The last report I made on this research project was on January 25, 2016. I estimated survival over time using the Kaplan-Meir estimate. I constructed a survival curve for all known-age birds in the population from fledge date to date last seen. Then, I made a survival curve for breeders in the population. 
 
 I realize my error on the procedure for determining if first time breeders have a different survival probability than experienced breeders. I was not correctly thinking about what censorship is. Now, I think I understand. I am using years of experience as a covariate in the models where all breeders are included (both known and unknown age). The input data will have multiple rows per individual jay (if the bird bred more than once), the date first recorded as a breeder and date last seen or still alive and some other information about each bird. 
+
+The following output is from two subsets of the jay data from 1981 to 2015. The first data set includes all known-age birds with a fledge date and a date last observed. The second data set includes all breeders in the population from 1981 to 2015. This has both known and unknown age birds. Unknown age birds have a minimum age, however. These data are mainly for practice. Next step is to add breeder experience to the breeder data set. 
 
 ```{r, echo = FALSE}
 setwd("C:/Users/efeichtinger/Dropbox/Jay data - can't share on github")
@@ -116,9 +118,9 @@ my.fitdy <- survfit(my.survdy~1)
 #plot(my.fityr, xlim=c(0,15), xlab="Years", ylab= "Survival", main="Breeders", pin = c(5,5))
 
 #Now on the same plot
-plot(my.fityr,lty = 1, xlim=c(0,15),col= "royalblue", xlab="Years", ylab= "Survival", main="Florida Scrub-Jay Survival", pin = c(5,5))
-lines(jay.lifetab, lty = 1, col = "mediumorchid4")
-legend("topright",c("Breeders","All Birds"), col=c("royalblue", "mediumorchid4"), lty= c(1,1), lwd = 2)
+plot(my.fityr,lty = 1, xlim=c(0,15),col= "dodgerblue", xlab="Years", ylab= "Survival", main="Florida Scrub-Jay Survival", pin = c(5,5))
+lines(jay.lifetab, lty = 1, col = "dodgerblue4")
+legend("topright",c("Breeders","All Birds"), col=c("dodgerblue", "dodgerblue4"), lty= c(1,1), lwd = 2)
 ```
 
 The figure generated has two K-M curves on it. One for all known-age birds and the other is for breeders, which includes unknown-age birds. The curves do have different shapes, especially in the beginning of the interval. As I'm writing this and looking at the graph, I had a thought. Does it matter that for the breeder curve, the time period starts when birds become breeders, so year 0 is at least age 1. However, for all birds, year  0 is when they fledged. I think I know what I need to do to work this out. I would have expected to see a steep decline in survival at first because young birds are more vulnerable to predation than older ones generally. 
@@ -149,7 +151,8 @@ summary(breed.exp)
 summary(breed.weib)
 ```
 
-Now, what to make of the output? The models above are with no predictors so it should just estimate the intercept. I think what the output is saying is that the intercept is not zero, and these models are not very good. I would like to spend some time reviewing this with Gordon. A while back Gordon showed me something using the car package but I don't remember exactly what it was. I think he was able to get more information on the estimates in the model and somehow he got an object that showed all the years that are estimated in the model. I don't remember how he did that, though. 
+Now, what to make of the output? The models above are with no predictors so it should just estimate the intercept. I think what the output is saying is that the intercept is not zero, and these models are not very good. I would like to spend some time reviewing this with Gordon. A while back Gordon showed me something using the car package but I don't remember exactly what it was. I think he was able to get more information on the estimates in the model and somehow he got an object that showed all the years that are estimated in the model. I don't remember how he did that, though.
+
 ```{r}
 #Fit a Cox PH model with sex as a predictor 
 brsex.cx <- coxph(my.survyr~brdrs.new$Sex, data = brdrs.new)
@@ -172,4 +175,31 @@ brage.cx <- coxph(my.survyr~brdrs.new$AgeFirstBreed)
 summary(brage.cx)
 ```
 
-I think the output is telling us that age at first breeding is significant but I would like to wait until I get the "new" dataset to really say something about this. I have to look at the relationship between years breeding and age to see how correlated they are. 
+I think the output is telling us that age at first breeding is significant but I would like to wait until I get the "new" dataset to really say something about this. I have to look at the relationship between years breeding and age to see how correlated they are. Make a plot of years breeding vs. age to see what the relationship looks like. 
+
+I consulted with Dr. Angela Tringali, the new post doc/lab manager in the Avian Ecology lab at Archbold on some questions I had about the data.  
+
+### On time to event models and censored regression 
+1. How do I test the assumption that the hazards are proportional?
+2. How to build the likelihood function with right censored data points? 
+
+As far as I know, the only censored data in the jay data are birds that are still alive and these would be right-censored. From Gordon's book chapter, I have come to realize that with censored regression we can estimate the probability that any value of y is censored. Do I need to worry about this for the jay data? He also writes that we need a likelihood fucntion that uses information about the censored data. Eqn 5.4 in the book is the log-likelihood for N data points where k of which are censored. 
+
+I had to refresh my memory on concepts related to survival modeling, including the following:  
+*Survival function S(t) is the probability an individual with survive beyond time t, Pr{T > t}, which is also the compliment of the cumulative distribution function F(t) = Pr{T < t} which is the probability that the event occurs by time t.  
+*Hazard function h(t) is the instantaneous rate of the even occuring/instantaneous risk of dying, or other words, the number of individuals experiencing event in interval beginning with t divided by the number of individuals surviving at time t times the interval width.  
+*Cumulative hazard - sum of risks faced in the duration 0 to t.  
+
+Are the jay data an example of Type I censoring? 
+
+Example: If the unit i is observed for some time and it dies at time t, its contribution to the likelihood function is the density at that duration, which is the product of the survivor and hazard functions (Rodriguez 2007).  
+I definitely need some more guidance on this whole likelihood business and how it fits into my modeling. Let's talk about this Gordon!
+
+###Model types
+*Accelerated Life Models
+*Weibull Model
+*Exponential
+*Cox Proportional Hazards
+*Cox models with time-dependent and tim-varying effects
+
+
