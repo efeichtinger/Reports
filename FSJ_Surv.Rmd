@@ -17,6 +17,7 @@ setwd("C:/Users/efeichtinger/Reports")
 library(survival)
 library(car)
 library(kinship2)
+library(SurvRegCensCov)
 
 #Known age birds
 
@@ -124,7 +125,7 @@ legend("topright",c("Breeders","All Birds"), col=c("dodgerblue", "dodgerblue4"),
 ```
 
 
-The figure generated has two K-M curves on it. One for all known-age birds and the other is for breeders, which includes unknown-age birds. The curves do have different shapes, especially in the beginning of the interval. As I'm writing this and looking at the graph, I had a thought. Does it matter that for the breeder curve, the time period starts when birds become breeders, so year 0 is at least age 1. However, for all birds, year  0 is when they fledged. I think I know what I need to do to work this out. I would have expected to see a steep decline in survival at first because young birds are more vulnerable to predation than older ones generally. 
+The figure generated has two K-M curves on it. One for all known-age birds and the other is for breeders, which includes unknown-age birds. The curves do have different shapes, especially in the beginning of the interval. As I'm writing this and looking at the graph, I had a thought. Does it matter that for the breeder curve, the time period starts when birds become breeders, so year 0 is at least age 1. However, for all birds, year  0 is when they fledged. I think I know what I need to do to work this out. I would have expected to see a steep decline in survival at first because young birds are more vulnerable to depredation than older ones generally. 
 
 
 Just as a place to start, let's fit models with an intercept only using both sets of data (all birds and breeders only) - these data primarily for practice
@@ -300,4 +301,29 @@ AFT.weibull <- survreg(jay.ob ~ YrsExp, data = jay.df, dist = "weibull")
 summary(AFT.weibull)
 ```
 
-Well, not really sure where to go from here. I don't know how to interpret the model output or IF I even did it correctly! The df seems suspect. 
+Well, not really sure where to go from here. I don't know how to interpret the model output or IF I even did it correctly! The df seems suspect. I'll have to clear up some of these concepts.
+
+COntinuing on later on 2/22 and the morning of 2/23, I fit some models with 3 covariates (sex, years experience and current age). 
+
+```{r}
+#Include years experience, age, and sex, no interactions
+cox4 <- coxph(jay.ob ~ YrsExp + Sex + CurrentAge, data = jay.df)
+#All 3 covariates 
+AFT.weibull4 <- survreg(jay.ob ~ YrsExp + Sex + CurrentAge, data = jay.df,
+                        dist = "weibull")
+
+#Compare AFT model (weibull) with Cox PH model that has 3 covariates 
+summary(cox4)
+summary(AFT.weibull4)
+
+##From package SurvRegCensCov - this function gives some useful output 
+mod1 <- WeibullReg(jay.ob ~ jay.df$YrsExp + jay.df$Sex, data=jay.df)
+mod2 <- WeibullReg(jay.ob ~ jay.df$YrsExp + jay.df$Sex + jay.df$CurrentAge, data=jay.df)
+
+mod1
+mod2
+```
+
+So, when I fit a model with 3 covariates, sex and years of experience have the same sign as they do in the models with each covariate separately. However, current age changes sign in models with 3 covariates. Alone, current age has a negative sign in the Cox model and a positive sign in the AFT Weibull model. These results suggest that current age decreases hazard and increases failure time, in other words, reduces your hazard. However, the estimate for current age has the opposite sign in both the Cox and AFT Weibull models when sex and years of breeder experience are included. I'm not confident that I even did this right, but regardless here is my interpretation of these results (even if the models are not fit correctly - think of it as practice).  
+
+Years of experience and sex (male) decreases your hazard/increases failure time for breeders. This makes sense in terms of jay biology. Age, in combination with theses covariates, increases your hazard/decreases failure time. Senescence? 
