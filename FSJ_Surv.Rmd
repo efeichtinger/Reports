@@ -262,6 +262,12 @@ jay.ob <- Surv(jay.df$Yrs, jay.df$censorship, type =c('right'))
 jay.lifetab <- survfit(jay.ob~1)
 jay.fit <- plot(jay.lifetab, xlab = "Time (years)", 
                 ylab = "Cumulative Survival", main = "FL Scrub Breeder survival")
+
+#Grouping by sex - following example "Cox Regression in R" J. Fox
+km.sex <- survfit(jay.ob ~ jay.df$Sex, conf.type = "log-log")
+km.fit <- plot(km.sex, xlab = "Time (years)", 
+               ylab = "Survival", main = "Survival by Sex")
+
 ```
 
 
@@ -286,6 +292,9 @@ summary(cox1)
 summary(cox2)
 summary(cox3)
 
+#Check for violation of proportional hazard 
+res.cox1 <- cox.zph(cox1)
+res.cox1
 extractAIC(cox1)
 extractAIC(cox2)
 extractAIC(cox3)
@@ -293,6 +302,7 @@ extractAIC(cox3)
 
 My suspicion is that I did not do something correctly because the degrees of freedom used is one. That doesn't seem right...  
 
+In any case, how does one interpret the output to the cox.zph code? This function is tests the proportional hazards assumption. 
 
 ```{r}
 AFT.exp <- survreg(jay.ob ~ YrsExp, data = jay.df, dist = "exponential")
@@ -308,6 +318,10 @@ COntinuing on later on 2/22 and the morning of 2/23, I fit some models with 3 co
 ```{r}
 #Include years experience, age, and sex, no interactions
 cox4 <- coxph(jay.ob ~ YrsExp + Sex + CurrentAge, data = jay.df)
+res.cox4 <- cox.zph(cox4, transform = "km")
+res.cox4
+plot(res.cox4)
+
 #All 3 covariates 
 AFT.weibull4 <- survreg(jay.ob ~ YrsExp + Sex + CurrentAge, data = jay.df,
                         dist = "weibull")
